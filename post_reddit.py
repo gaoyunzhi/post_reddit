@@ -15,18 +15,12 @@ import os
 import export_to_telegraph
 from telegram_util import isCN
 from reddit_2_album import reddit
+from telepost import getPost, getImages
 
 subreddit = reddit.subreddit('cn_talk')
-subreddit.submit()
 
 from praw.models import InlineGif, InlineImage, InlineVideo
 
-gif = InlineGif("path/to/image.gif", "optional caption")
-image = InlineImage("path/to/image.jpg", "optional caption")
-video = InlineVideo("path/to/video.mp4", "optional caption")
-selftext = "Text with a gif {gif1} an image {image1} and a video {video1} inline"
-media = {"gif1": gif, "image1": image, "video1": video}
-reddit.subreddit("redditdev").submit("title", selftext=selftext, inline_media=media)
 
 existing = plain_db.load('existing')
 
@@ -164,25 +158,19 @@ async def post_twitter(channel, post, album, status_text):
             print('send twitter status failed:', str(e), album.url)
         
 async def run():
-    for channel in credential['channels']:
-        for album, post in getPosts(channel):
-            if existing.get(album.url):
-                continue
-            if album.video and (not album.imgs):
-                continue
-            status_text = getText(album, post) or album.url
-            if not matchLanguage(channel, status_text):
-                continue
-            if len(status_text) > 280: 
-                continue
-            existing.update(album.url, -1) # place holder
-            result = await post_twitter(channel, post, album, status_text)
-            if not result:
-                continue
-            existing.update(album.url, result.id)
-            if 'client' in client_cache:
-                await client_cache['client'].disconnect()
-            return # only send one item every 10 minute
+    post = getPost('twitter_translate', existing)
+    key = 'https://t.me/' + post.getKey()
+    existing.update(key, -1)
+    post_size = post.getPostSize()
+    print(post_size)
+    # print(len(post.soup.find_all('a', 'tgme_widget_message_photo_wrap')))
+    # gif = InlineGif("path/to/image.gif", "optional caption")
+    # image = InlineImage("path/to/image.jpg", "optional caption")
+    # video = InlineVideo("path/to/video.mp4", "optional caption")
+    # selftext = "Text with a gif {gif1} an image {image1} and a video {video1} inline"
+    # media = {"gif1": gif, "image1": image, "video1": video}
+    # reddit.subreddit("redditdev").submit("title", selftext=selftext, inline_media=media)
+
         
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
