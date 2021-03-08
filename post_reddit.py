@@ -14,11 +14,24 @@ import cached_url
 import os
 import export_to_telegraph
 from telegram_util import isCN
+from reddit_2_album import reddit
+
+subreddit = reddit.subreddit('cn_talk')
+subreddit.submit()
+
+from praw.models import InlineGif, InlineImage, InlineVideo
+
+gif = InlineGif("path/to/image.gif", "optional caption")
+image = InlineImage("path/to/image.jpg", "optional caption")
+video = InlineVideo("path/to/video.mp4", "optional caption")
+selftext = "Text with a gif {gif1} an image {image1} and a video {video1} inline"
+media = {"gif1": gif, "image1": image, "video1": video}
+reddit.subreddit("redditdev").submit("title", selftext=selftext, inline_media=media)
+
+existing = plain_db.load('existing')
 
 with open('credential') as f:
     credential = yaml.load(f, Loader=yaml.FullLoader)
-
-existing = plain_db.load('existing')
 
 Day = 24 * 60 * 60
 
@@ -91,17 +104,6 @@ def matchLanguage(channel, status_text):
     if not credential['channels'][channel].get('chinese_only'):
         return True
     return isCN(status_text)
-
-twitter_api_cache = {}
-def getTwitterApi(channel):
-    user = credential['channels'][channel]['twitter_user']
-    if user in twitter_api_cache:
-        return twitter_api_cache[user]
-    auth = tweepy.OAuthHandler(credential['twitter_consumer_key'], credential['twitter_consumer_secret'])
-    auth.set_access_token(credential['twitter_users'][user]['access_key'], credential['twitter_users'][user]['access_secret'])
-    api = tweepy.API(auth)
-    twitter_api_cache[user] = api
-    return api
 
 client_cache = {}
 async def getTelethonClient():
