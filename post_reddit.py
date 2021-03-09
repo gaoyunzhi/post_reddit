@@ -51,6 +51,7 @@ async def postImp(post, key):
     post_text = getText(post.text)
     img_number = post.getImgNumber()
     if not img_number:
+        # see if I need to deal with the link case separately
         return postAsText(post_text)
     fns = await getImages(channel, post.post_id, img_number)
     core = getCore(post_text)
