@@ -15,7 +15,7 @@ import os
 import export_to_telegraph
 from telegram_util import isCN
 from reddit_2_album import reddit
-from telepost import getPost, getImages
+from telepost import getPost, getImages, exitTelethon
 
 subreddit = reddit.subreddit('cn_talk')
 
@@ -99,31 +99,6 @@ def matchLanguage(channel, status_text):
         return True
     return isCN(status_text)
 
-client_cache = {}
-async def getTelethonClient():
-    if 'client' in client_cache:
-        return client_cache['client']
-    client = TelegramClient('session_file', credential['telegram_api_id'], credential['telegram_api_hash'])
-    await client.start(password=credential['telegram_user_password'])
-    client_cache['client'] = client   
-    return client_cache['client']
-
-async def getChannelImp(client, channel):
-    if channel not in credential['id_map']:
-        entity = await client.get_entity(channel)
-        credential['id_map'][channel] = entity.id
-        with open('credential', 'w') as f:
-            f.write(yaml.dump(credential, sort_keys=True, indent=2, allow_unicode=True))
-        return entity
-    return await client.get_entity(credential['id_map'][channel])
-        
-channels_cache = {}
-async def getChannel(client, channel):
-    if channel in channels_cache:
-        return channels_cache[channel]
-    channels_cache[channel] = await getChannelImp(client, channel)
-    return channels_cache[channel]
-
 def getGroupedPosts(posts):
     grouped_id = None
     result = []
@@ -144,25 +119,21 @@ async def getMediaIds(api, channel, post, album):
     posts = await client.get_messages(entity, min_id=post.post_id - 1, max_id = post.post_id + 9)
     media_ids = await getMedia(api, getGroupedPosts(posts))
     return list(media_ids)
-
-async def post_twitter(channel, post, album, status_text):
-    api = getTwitterApi(channel)
-    media_ids = await getMediaIds(api, channel, post, album)
-    if not media_ids and (album.video or album.imgs):
-        print('all media upload failed: ', album.url)
-        return
-    try:
-        return api.update_status(status=status_text, media_ids=media_ids)
-    except Exception as e:
-        if 'Tweet needs to be a bit shorter.' not in str(e):
-            print('send twitter status failed:', str(e), album.url)
-        
-async def run():
-    post = getPost('twitter_translate', existing)
+ 
+async def runImp():
+    channel = 'twitter_translate'
+    post = getPost(channel, existing)
     key = 'https://t.me/' + post.getKey()
-    existing.update(key, -1)
     post_size = post.getPostSize()
-    print(post_size)
+    fns = await getImages(channel, post.post_id, post_size)
+    media = {}
+    for fn in fns:
+        media[fn] = InlineImage(fn)
+    print(post.text)
+
+async def run():
+    await runImp()
+    await exitTelethon()
     # print(len(post.soup.find_all('a', 'tgme_widget_message_photo_wrap')))
     # gif = InlineGif("path/to/image.gif", "optional caption")
     # image = InlineImage("path/to/image.jpg", "optional caption")
