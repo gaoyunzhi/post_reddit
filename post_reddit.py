@@ -7,20 +7,32 @@ from telegram_util import isCN
 from reddit_2_album import reddit
 from telepost import getPost, getImages, exitTelethon, getText
 from praw.models import InlineImage, InlineVideo
+from telegram_util import matchKey
 
 reddit.validate_on_submit = True
 subreddit = reddit.subreddit('cn_talk')
-
+channel = 'twitter_translate'
 existing = plain_db.load('existing')
 
-async def runImp():
-    channel = 'twitter_translate'
-    post = getPost(channel, existing)
-    if not isCN(post.text.text):
-        return
-    key = 'https://t.me/' + post.getKey()
-    post_size = post.getPostSize()
-    fns = await getImages(channel, post.post_id, post_size)
+def getCore(text):
+    lines = text.split('\n')
+    lines = [line for line in lines if not 
+        matchKey(line, '译者', 'translated by')]
+    return ''.join(lines)
+
+def splitText(text):
+    lines = text.split('\n')
+    return lines[0], '\n'.join(lines[1:]).strip()
+
+def postAsGallery(core, fns, key): 
+    images = [{"image_path": fn, "outbound_url": key} for fn in fns]
+    return subreddit.submit_gallery(core, images)
+
+def postAsText(post_text):
+    title, content = splitText(post_text)
+    return subreddit.submit(title, selftext=content)
+
+def postInline(post_text, fns):
     media = {}
     count = 0
     text = ''
@@ -29,24 +41,32 @@ async def runImp():
         image_key = 'image' + str(count)
         media[image_key] = InlineImage(fn)
         text += '{%s}' % image_key
+    title, content = splitText(post_text)
+    content += text
+    return subreddit.submit(title, selftext=content, inline_media=media)
+    
+async def postImp(post, key):
     post_text = getText(post.text)
-    title = post_text.split('http')[0]
-    text += post_text
-    # 似乎inline就没有preview了
-    result = subreddit.submit(title, selftext=text, inline_media=media)
+    img_number = post.getImgNumber()
+    if not img_number:
+        return postAsText(post_text)
+    fns = await getImages(channel, post.post_id, img_number)
+    core = getCore(post_text)
+    if len(core) < 180:
+        return postAsGallery(core, fns, key)
+    postInline(post_text, fns)
+
+async def runImp():
+    post = getPost(channel, existing)
+    if not isCN(post.text.text):
+        return
+    key = 'https://t.me/' + post.getKey()
+    await postImp(post, key)
     existing.update(key, 1)
 
 async def run():
     await runImp()
     await exitTelethon()
-    # print(len(post.soup.find_all('a', 'tgme_widget_message_photo_wrap')))
-    # gif = InlineGif("path/to/image.gif", "optional caption")
-    # image = InlineImage("path/to/image.jpg", "optional caption")
-    # video = InlineVideo("path/to/video.mp4", "optional caption")
-    # selftext = "Text with a gif {gif1} an image {image1} and a video {video1} inline"
-    # media = {"gif1": gif, "image1": image, "video1": video}
-    # reddit.subreddit("redditdev").submit("title", selftext=selftext, inline_media=media)
-
         
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
