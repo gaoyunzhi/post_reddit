@@ -70,7 +70,7 @@ async def postImp(post, key):
     core = getCore(post_text)
     if len(core) < 180:
         return postAsGallery(core, fns, key)
-    postInline(post_text, fns)
+    return postInline(post_text, fns)
 
 async def runImp():
     post = getPost(channel, existing, min_time=1)
@@ -80,7 +80,8 @@ async def runImp():
     if not isCN(post.text.text):
         existing.update(key, -1)
         return
-    await postImp(post, key)
+    result = await postImp(post, key)
+    print('https://www.reddit.com/r/cn_talk/comments/' + str(result))
     existing.update(key, 1)
 
 async def run():
