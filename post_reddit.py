@@ -1,53 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from telethon import TelegramClient
 import asyncio
-import tweepy
-import yaml
-import time
 import plain_db
-import webgram
-import post_2_album
-from bs4 import BeautifulSoup
-import cached_url
-import os
-import export_to_telegraph
 from telegram_util import isCN
 from reddit_2_album import reddit
 from telepost import getPost, getImages, exitTelethon, getText
+from praw.models import InlineImage, InlineVideo
 
+reddit.validate_on_submit = True
 subreddit = reddit.subreddit('cn_talk')
-
-from praw.models import InlineGif, InlineImage, InlineVideo
-
 
 existing = plain_db.load('existing')
 
-with open('credential') as f:
-    credential = yaml.load(f, Loader=yaml.FullLoader)
-
-Day = 24 * 60 * 60
-
-def getPosts(channel):
-    start = time.time()
-    result = []
-    posts = webgram.getPosts(channel)[1:]
-    result += posts
-    while posts and posts[0].time > (time.time() - 
-            credential['channels'][channel]['back_days'] * Day):
-        pivot = posts[0].post_id
-        posts = webgram.getPosts(channel, posts[0].post_id, 
-            direction='before', force_cache=True)[1:]
-        result += posts
-    for post in result:
-        if post.time > time.time() - Day:
-            continue
-        try:
-            yield post_2_album.get('https://t.me/' + post.getKey()), post
-        except Exception as e:
-            print('post_2_album failed', post.getKey(), str(e))
- 
 async def runImp():
     channel = 'twitter_translate'
     post = getPost(channel, existing)
@@ -69,6 +34,7 @@ async def runImp():
     text += post_text
     # 似乎inline就没有preview了
     result = subreddit.submit(title, selftext=text, inline_media=media)
+    existing.update(key, 1)
 
 async def run():
     await runImp()
