@@ -75,7 +75,10 @@ async def exitTelethon():
 def getText(soup):
     for item in soup.find_all('a'):
         if item.get('href') and not isUrl(item.text):
-                item.replace_with('\n\n' + item.get('href'))
+                item.replace_with('\n\n' + item.get('href') + '\n\n')
     for item in soup.find_all('br'):
         item.replace_with('\n')
-    return soup.text.strip()
+    result = soup.text.strip()
+    for _ in range(5):
+        result = result.replace('\n\n\n', '\n\n')
+    return result

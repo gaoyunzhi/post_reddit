@@ -3,6 +3,7 @@
 
 import asyncio
 import plain_db
+import cached_url
 from telegram_util import isCN
 from reddit_2_album import reddit
 from telepost import getPost, getImages, exitTelethon, getText
@@ -46,10 +47,19 @@ def postInline(post_text, fns):
     title, content = splitText(post_text)
     content += text
     return subreddit.submit(title, selftext=content, inline_media=media)
+
+def postVideo(post_text, video):
+    cached_url.get(video, mode='b', force_cache=True)
+    title, content = splitText(post_text)
+    content += '{video}'
+    return subreddit.submit(title, selftext=content, inline_media={
+        "video": InlineVideo(cached_url.getFilePath(video))})
     
 async def postImp(post, key):
     post_text = getText(post.text)
     img_number = post.getImgNumber()
+    if post.getVideo():
+        return postVideo(post_text, post.getVideo())
     if not img_number:
         # see if I need to deal with the link case separately
         return postAsText(post_text)
