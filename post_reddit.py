@@ -15,7 +15,7 @@ import os
 import export_to_telegraph
 from telegram_util import isCN
 from reddit_2_album import reddit
-from telepost import getPost, getImages, exitTelethon
+from telepost import getPost, getImages, exitTelethon, getText
 
 subreddit = reddit.subreddit('cn_talk')
 
@@ -51,15 +51,24 @@ def getPosts(channel):
 async def runImp():
     channel = 'twitter_translate'
     post = getPost(channel, existing)
-    if not isCN(post.text):
+    if not isCN(post.text.text):
         return
     key = 'https://t.me/' + post.getKey()
     post_size = post.getPostSize()
     fns = await getImages(channel, post.post_id, post_size)
     media = {}
+    count = 0
+    text = ''
     for fn in fns:
-        media[fn] = InlineImage(fn)
-    print(post.text)
+        count += 1
+        image_key = 'image' + str(count)
+        media[image_key] = InlineImage(fn)
+        text += '{%s}' % image_key
+    post_text = getText(post.text)
+    title = post_text.split('http')[0]
+    text += post_text
+    # 似乎inline就没有preview了
+    result = subreddit.submit(title, selftext=text, inline_media=media)
 
 async def run():
     await runImp()
