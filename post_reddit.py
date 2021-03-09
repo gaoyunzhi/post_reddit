@@ -47,82 +47,12 @@ def getPosts(channel):
             yield post_2_album.get('https://t.me/' + post.getKey()), post
         except Exception as e:
             print('post_2_album failed', post.getKey(), str(e))
-
-def getLinkReplace(url, album):
-    if 'telegra.ph' in url and 'douban.com/note/' in album.cap_html:
-        return ''
-    if 'telegra.ph' in url:
-        soup = BeautifulSoup(cached_url.get(url, force_cache=True), 'html.parser')
-        title = export_to_telegraph.getTitle(url)
-        try:
-            return '\n\n【%s】 %s' % (title, soup.find('address').find('a')['href'])
-        except:
-            return ''
-    return '\n\n' + url
-
-def getText(album, post):
-    soup = BeautifulSoup(album.cap_html, 'html.parser')
-    for item in soup.find_all('a'):
-        if item.get('href'):
-            item.replace_with(getLinkReplace(item.get('href'), album))
-    for item in soup.find_all('br'):
-        item.replace_with('\n')
-    text = soup.text.strip()
-    if post.file:
-        text += '\n\n' + album.url
-    return text
-
-async def getMediaSingle(api, post):
-    fn = await post.download_media('tmp/')
-    if not fn:
-        return
-    if os.stat(fn).st_size >= 4883 * 1024: # twitter limit
-        return
-    try:
-        return api.media_upload(fn).media_id
-    except Exception as e:
-        print('media upload failed:', str(e))
-
-async def getMedia(api, posts):
-    # tweepy does not support video yet.  https://github.com/tweepy/tweepy/pull/1486
-    result = []
-    for post in posts:
-        media = await getMediaSingle(api, post)
-        if media:
-            result.append(media)
-        if len(result) >= 4:
-            return result
-    return result
-
-def matchLanguage(channel, status_text):
-    if not credential['channels'][channel].get('chinese_only'):
-        return True
-    return isCN(status_text)
-
-def getGroupedPosts(posts):
-    grouped_id = None
-    result = []
-    for post in posts[::-1]:
-        if not grouped_id and not post.grouped_id:
-            return [post]
-        if not grouped_id:
-            grouped_id = post.grouped_id
-        if post.grouped_id == grouped_id:
-            result.append(post)
-    return result
-
-async def getMediaIds(api, channel, post, album):
-    if not album.imgs:
-        return []
-    client = await getTelethonClient()
-    entity = await getChannel(client, channel)
-    posts = await client.get_messages(entity, min_id=post.post_id - 1, max_id = post.post_id + 9)
-    media_ids = await getMedia(api, getGroupedPosts(posts))
-    return list(media_ids)
  
 async def runImp():
     channel = 'twitter_translate'
     post = getPost(channel, existing)
+    if not isCN(post.text):
+        return
     key = 'https://t.me/' + post.getKey()
     post_size = post.getPostSize()
     fns = await getImages(channel, post.post_id, post_size)

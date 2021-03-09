@@ -2,6 +2,8 @@ import yaml
 import webgram
 import time
 from telethon import TelegramClient
+from bs4 import BeautifulSoup
+from telegram_util import isUrl
 
 with open('credential') as f:
     credential = yaml.load(f, Loader=yaml.FullLoader)
@@ -70,3 +72,12 @@ async def getImages(channel, post_id, post_size):
 async def exitTelethon():
     if 'client' in client_cache:
         await client_cache['client'].disconnect()
+
+def getText(text):
+    soup = BeautifulSoup(text, 'html.parser')
+    for item in soup.find_all('a'):
+        if item.get('href') and not isUrl(item.text):
+                item.replace_with('\n\n' + item.get('href'))
+    for item in soup.find_all('br'):
+        item.replace_with('\n')
+    return soup.text.strip()
