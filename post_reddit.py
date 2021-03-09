@@ -19,7 +19,10 @@ def getCore(text):
     lines = text.split('\n')
     lines = [line for line in lines if not 
         matchKey(line, ['http', '译者', 'translated by'])]
-    return ''.join(lines)
+    result = '　'.join(lines)
+    for char in '。！？，':
+        result = result.replace(char + '　', char)
+    return result
 
 def splitText(text):
     lines = text.split('\n')
@@ -70,7 +73,7 @@ async def postImp(post, key):
     postInline(post_text, fns)
 
 async def runImp():
-    post = getPost(channel, existing, min_time=0)
+    post = getPost(channel, existing, min_time=1)
     if not post:
         return
     key = 'https://t.me/' + post.getKey()

@@ -63,7 +63,7 @@ async def getImages(channel, post_id, post_size):
     entity = await getChannel(client, channel)
     posts = await client.get_messages(entity, min_id=post_id - 1, max_id = post_id + post_size)
     result = []
-    for post in posts:
+    for post in posts[::-1]:
         fn = await post.download_media('tmp/')
         result.append(fn)
     return result
