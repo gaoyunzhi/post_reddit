@@ -61,7 +61,7 @@ async def getTelethonClient():
 async def getImages(channel, post_id, post_size):
     client = await getTelethonClient()
     entity = await getChannel(client, channel)
-    posts = await client.get_messages(entity, min_id=post_id - 1, max_id = post_id + post_size + 1)
+    posts = await client.get_messages(entity, min_id=post_id - 1, max_id = post_id + post_size)
     result = []
     for post in posts:
         fn = await post.download_media('tmp/')

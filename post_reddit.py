@@ -17,7 +17,7 @@ existing = plain_db.load('existing')
 def getCore(text):
     lines = text.split('\n')
     lines = [line for line in lines if not 
-        matchKey(line, '译者', 'translated by')]
+        matchKey(line, ['http', '译者', 'translated by'])]
     return ''.join(lines)
 
 def splitText(text):
@@ -25,6 +25,8 @@ def splitText(text):
     return lines[0], '\n'.join(lines[1:]).strip()
 
 def postAsGallery(core, fns, key): 
+    if len(fns) == 1:
+        return subreddit.submit_image(core, fns[0])
     images = [{"image_path": fn, "outbound_url": key} for fn in fns]
     return subreddit.submit_gallery(core, images)
 
@@ -57,10 +59,13 @@ async def postImp(post, key):
     postInline(post_text, fns)
 
 async def runImp():
-    post = getPost(channel, existing)
-    if not isCN(post.text.text):
+    post = getPost(channel, existing, min_time=0)
+    if not post:
         return
     key = 'https://t.me/' + post.getKey()
+    if not isCN(post.text.text):
+        existing.update(key, -1)
+        return
     await postImp(post, key)
     existing.update(key, 1)
 
