@@ -9,6 +9,7 @@ from reddit_2_album import reddit
 from telepost import getPost, getImages, exitTelethon, getText
 from praw.models import InlineImage, InlineVideo
 from telegram_util import matchKey
+import copy
 
 reddit.validate_on_submit = True
 subreddit = reddit.subreddit('cn_talk')
@@ -16,7 +17,7 @@ channel = 'twitter_translate'
 existing = plain_db.load('existing')
 
 def getCore(soup):
-    print(soup)
+    soup = copy.copy(soup)
     for item in soup.find_all('a'):
         item.decompose()
     for item in soup.find_all('br'):
@@ -27,7 +28,6 @@ def getCore(soup):
     result = '　'.join(lines)
     for char in '。！？，':
         result = result.replace(char + '　', char)
-    print(result)
     return result
 
 def splitText(text):
@@ -73,10 +73,10 @@ async def postImp(post, key):
         # see if I need to deal with the link case separately
         return postAsText(post_text)
     fns = await getImages(channel, post.post_id, img_number)
-    core = getCore(post.soup)
-    # if len(core) < 180:
-    #     return postAsGallery(core, fns, key)
-    # return postInline(post_text, fns)
+    core = getCore(post.text)
+    if len(core) < 180:
+        return postAsGallery(core, fns, key)
+    return postInline(post_text, fns)
 
 async def runImp():
     post = getPost(channel, existing, min_time=1)
@@ -87,8 +87,8 @@ async def runImp():
         existing.update(key, -1)
         return
     result = await postImp(post, key)
-    # print('https://www.reddit.com/r/cn_talk/comments/' + str(result))
-    # existing.update(key, 1)
+    print('https://www.reddit.com/r/cn_talk/comments/' + str(result))
+    existing.update(key, 1)
 
 async def run():
     await runImp()
