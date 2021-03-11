@@ -15,9 +15,13 @@ subreddit = reddit.subreddit('cn_talk')
 channel = 'twitter_translate'
 existing = plain_db.load('existing')
 
-def getCore(text):
-    lines = text.split('\n')
-    lines = [line for line in lines if not 
+def getCore(soup):
+    for item in soup.find_all('a'):
+        item.decompose()
+    for item in soup.find_all('br'):
+        item.replace_with('\n')
+    lines = soup.text.split('\n')
+    lines = [line for line in lines if line.strip() and not 
         matchKey(line, ['http', '译者', 'translated by'])]
     result = '　'.join(lines)
     for char in '。！？，':
@@ -67,7 +71,7 @@ async def postImp(post, key):
         # see if I need to deal with the link case separately
         return postAsText(post_text)
     fns = await getImages(channel, post.post_id, img_number)
-    core = getCore(post_text)
+    core = getCore(post.soup)
     if len(core) < 180:
         return postAsGallery(core, fns, key)
     return postInline(post_text, fns)
