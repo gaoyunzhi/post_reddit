@@ -16,6 +16,7 @@ channel = 'twitter_translate'
 existing = plain_db.load('existing')
 
 def getCore(soup):
+    print(soup)
     for item in soup.find_all('a'):
         item.decompose()
     for item in soup.find_all('br'):
@@ -26,6 +27,7 @@ def getCore(soup):
     result = '　'.join(lines)
     for char in '。！？，':
         result = result.replace(char + '　', char)
+    print(result)
     return result
 
 def splitText(text):
@@ -72,9 +74,9 @@ async def postImp(post, key):
         return postAsText(post_text)
     fns = await getImages(channel, post.post_id, img_number)
     core = getCore(post.soup)
-    if len(core) < 180:
-        return postAsGallery(core, fns, key)
-    return postInline(post_text, fns)
+    # if len(core) < 180:
+    #     return postAsGallery(core, fns, key)
+    # return postInline(post_text, fns)
 
 async def runImp():
     post = getPost(channel, existing, min_time=1)
@@ -85,8 +87,8 @@ async def runImp():
         existing.update(key, -1)
         return
     result = await postImp(post, key)
-    print('https://www.reddit.com/r/cn_talk/comments/' + str(result))
-    existing.update(key, 1)
+    # print('https://www.reddit.com/r/cn_talk/comments/' + str(result))
+    # existing.update(key, 1)
 
 async def run():
     await runImp()
