@@ -24,7 +24,7 @@ def getCore(soup):
         item.replace_with('\n')
     lines = soup.text.split('\n')
     lines = [line for line in lines if line.strip() and not 
-        matchKey(line, ['http', '译者', 'translated by'])]
+        matchKey(line, ['http', '译者', 'translated by', '翻译：'])]
     result = '　'.join(lines)
     for char in '。！？，':
         result = result.replace(char + '　', char)
