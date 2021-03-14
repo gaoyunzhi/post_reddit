@@ -22,7 +22,10 @@ def getCore(soup):
         item.decompose()
     for item in soup.find_all('br'):
         item.replace_with('\n')
-    lines = soup.text.split('\n')
+    text = soup.text.strip()
+    for phrase in ['译者：']:
+        text = text.strip(phrase)
+    lines = text.split('\n')
     lines = [line for line in lines if line.strip() and not 
         matchKey(line, ['http', '译者', 'translated by', '翻译：'])]
     result = '　'.join(lines)
