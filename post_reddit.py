@@ -10,11 +10,14 @@ from telepost import getPost, getImages, exitTelethon, getText
 from praw.models import InlineImage, InlineVideo
 from telegram_util import matchKey
 import copy
+import time
 
 reddit.validate_on_submit = True
 subreddit = reddit.subreddit('cn_talk')
 channel = 'twitter_translate'
 existing = plain_db.load('existing')
+
+Day = 24 * 60 * 60
 
 def getCore(soup):
     soup = copy.copy(soup)
@@ -82,7 +85,7 @@ async def postImp(post, key):
     return postInline(post_text, fns)
 
 async def runImp():
-    post = getPost(channel, existing, min_time=1)
+    post = getPost(channel, existing, min_time=time.time() - Day * 2)
     if not post:
         return
     key = 'https://t.me/' + post.getKey()
